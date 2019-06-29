@@ -1,0 +1,4 @@
+xlrd
+num2words
+python-docx
+PyYAML
