@@ -1,0 +1,22 @@
+Dear {mentee_name} and {mentor_name},
+
+    We are happy that you will be joining us in the WiNLP mentorship program at ACL in the coming days!
+
+    After reviewing our responses to the mentorship program form, we have made the following assignment:
+
+    Mentor: {mentor_name:>25} {mentor_pronouns:<18} {mentor_email}
+    Mentee: {mentee_name:>25} {mentee_pronouns:<18} {mentee_email}
+
+    Please use the contact information provided in this email to get in touch with each other, schedule a time to meet, and briefly introduce yourself and your interests.
+
+    To help schedule a meeting, here is the availability that you both reported using our form:
+
+{mentor_name}:
+{mentor_availability}
+{mentee_name}:
+{mentee_availability}
+
+Please let us know if any of your plans have changed, or if you are unable to find a suitable schedule and we will see if we can find another match.
+
+Sincerely,
+WiNLP 2019 Co-Chairs

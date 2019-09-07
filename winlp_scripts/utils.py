@@ -1,7 +1,10 @@
+import math
+import re
 from string import ascii_lowercase
 from xlrd.sheet import Cell, Sheet
 import yaml
-from typing import Tuple, List, Generator
+from typing import Tuple, List, Generator, Union
+
 
 def get_rows_with_headers(sheet: Sheet) -> Tuple[List[Cell],
                                                  Generator[List[Cell], None, None]]:
@@ -12,6 +15,21 @@ def get_rows_with_headers(sheet: Sheet) -> Tuple[List[Cell],
     headers = [cell.value for cell in next(row_iterator)]
     return headers, row_iterator
 
+def usd(s: Union[str, float]) -> float:
+    """
+    Unify the values entered for USD as float (0 when NaN)
+    """
+    if s is None:
+        return 0
+    elif isinstance(s, str):
+        if not s.strip():
+            return 0
+        s = re.sub('[\$,]', '', s)
+        return float(s)
+    else:
+        if math.isnan(s):
+            s = 0
+        return float(s)
 
 def col_letter(col_str):
     sum = 0

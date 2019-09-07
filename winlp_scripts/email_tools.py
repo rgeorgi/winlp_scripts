@@ -4,31 +4,40 @@ from email.mime.multipart import MIMEMultipart
 import smtplib
 from typing import List
 import time
+from html2text import html2text
 
-
-def gmail_send(config: dict,
-               from_addr,
+def gmail_send(gmail_user,
+               gmail_pass,
                to_addrs,
                msg: MIMEMultipart):
     """
     Actually perform the sending of the email.
     """
+    msg['To'] = ','.join(to_addrs)
     for i in range(3):
         try:
             server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
             server.ehlo()
-            server.login(config['gmail_user'], config['gmail_pass'])
-            server.sendmail(from_addr, to_addrs, msg.as_string())
+            server.login(gmail_user, gmail_pass)
+            server.sendmail(gmail_user, to_addrs, msg.as_string())
             server.close()
             return server
         except TimeoutError as te:
             print("Attempt #{}/{} timed out. ".format(i+1, 3))
-        else:
-            break
     time.sleep(3)
 
 
-def draft_msg(text, subject, to_addrs, from_addr):
+def craft_text_email(text, subject) -> MIMEMultipart:
+    part = MIMEText(text, "plain")
+    return draft_msg(subject, [part])
+
+def create_html_email(html, subject, ) -> MIMEMultipart:
+    html_part = MIMEText(html, 'html')
+    text_part = MIMEText(html2text(html), 'plain')
+    return draft_msg(subject, [html_part, text_part])
+
+def draft_msg(subject: str,
+              parts = List[MIMEText]) -> MIMEMultipart:
     """
     Compose a MIME-Multipart message with the given address
 
@@ -36,10 +45,9 @@ def draft_msg(text, subject, to_addrs, from_addr):
     :param to_addrs:
     :return:
     """
-    msg = MIMEMultipart()
+    msg = MIMEMultipart('alternative')
     msg['Date'] = formatdate(localtime=True)
     msg['Subject'] = subject
-    msg['To'] = ','.join(to_addrs)
-    # msg['From'] = from_addr
-    msg.attach(MIMEText(text))
+    for part in parts:
+        msg.attach(part)
     return msg

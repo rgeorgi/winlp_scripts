@@ -1,0 +1,25 @@
+name: a
+approved: d
+acl_refund: f
+status: h
+awarded: i
+e_total: k
+e_air: l
+e_train: m
+e_hotel: n
+r_air: s
+r_hotel: t
+r_visa: u
+r_train: v
+r_reg: r
+r_acl: q
+r_main_conf: ae
+developing: ac
+email: aa
+origin: ab
+paper: ag
+method: b
+
+# Also define the size of the sheet.
+num_rows: 48
+last_col: ah

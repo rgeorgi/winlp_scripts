@@ -8,34 +8,24 @@ from argparse import ArgumentParser
 import os
 from collections import OrderedDict, defaultdict
 from io import BytesIO
-from typing import Union
+
+import logging
+LOG = logging.getLogger(__file__)
 
 from pandas import DataFrame
-import math
 import zipfile
 import json
 import urllib.parse
-import re
+import datetime
 
 from winlp_scripts.limesurvey import LimeSurveyConnection
-from winlp_scripts.utils import load_yml
-
-
-def usd(s: Union[str, float]) -> float:
-    """
-    Unify the values entered for USD as float (0 when NaN)
-    """
-    if isinstance(s, str):
-        return float(s) if not s.startswith('$') else float(s[1:])
-    else:
-        if math.isnan(s):
-            s = 0
-        return float(s)
+from winlp_scripts.utils import load_yml, usd
 
 
 def parse_sheet(responses: DataFrame,
                 output_dir,
-                zip: zipfile.ZipFile):
+                zip: zipfile.ZipFile,
+                daily_rate: int):
     """
     Process the returned responses
     """
@@ -46,6 +36,15 @@ def parse_sheet(responses: DataFrame,
         address = data['mailingaddress']
         response_id = data['id']
         name = data['name']
+        onsite = data['regonsite']
+
+        # Retrieve the check-in date to make sure
+        # grant recipients were using the approved max amount
+        datestart = datetime.datetime.strptime(data['hotelstart'], '%Y-%m-%d %H:%M:%S')
+        datestop = datetime.datetime.strptime(data['hotelend'], '%Y-%m-%d %H:%M:%S')
+
+        hotel_days = min((datestop - datestart).days+1, 7)
+        max_hotel = hotel_days*daily_rate
 
         # Recordkeeping vars
         cost_dict = OrderedDict()
@@ -58,7 +57,6 @@ def parse_sheet(responses: DataFrame,
         files_for_post = {info for info in zip.filelist if
                           info.filename.startswith('{:05d}'.format(response_id))}  # type: Set[zipfile.ZipInfo]
 
-        print(data.keys())
 
         def files_and_amts(file_data_name, dir_name, amt_key):
             nonlocal files_for_post, total_amt
@@ -108,6 +106,9 @@ def parse_sheet(responses: DataFrame,
         files_and_amts('visadoc', 'visa', 'visaamt')
         files_and_amts('addldocs', 'other', 'addlcosts')
 
+        # Do acl membership
+        cost_dict['membership'] = usd(data['aclmembershipamt'])
+
         # Now, extract any other files
         for file in files_for_post:
             zip.extract(file, respondent_dir)
@@ -121,6 +122,8 @@ def parse_sheet(responses: DataFrame,
             for key in cost_dict:
                 summary_f.write('{:>20s}: ${:0.2f}\n'.format(key, cost_dict[key]))
 
+            summary_f.write('\nmax hotel: ({:d} days) - ${:.2f}'.format(hotel_days, max_hotel))
+
             summary_f.write('\ntotal itemized: ${:.2f}\n'.format(total_amt))
 
             if comments:
@@ -132,6 +135,13 @@ def parse_sheet(responses: DataFrame,
                             if comment:
                                 summary_f.write(' '*10+''+'{}: {}\n'.format(filename, comment))
 
+            if 'registration' in cost_dict:
+                summary_f.write('Registration was: ')
+                if onsite == 'Y':
+                    summary_f.write('IN-PERSON\n')
+                else:
+                    summary_f.write('ONLINE\n')
+
 if __name__ == '__main__':
     p = ArgumentParser()
     p.add_argument('-z', '--zip', help='Path to save the zip of attached files.')
@@ -140,24 +150,34 @@ if __name__ == '__main__':
     p.add_argument('-s', '--surveyid', help='ID of the reimbursement survey', required=True, type=int)
     p.add_argument('--sheet', help='Path to the sheet destination', type=str)
     p.add_argument('-f', '--force', help='Overwrite previously downloaded data', action='store_true')
+    p.add_argument('-d', '--daily', default=66.4, type=float)
+    p.add_argument('-v', '--verbose', action='count', default=0)
 
     args = p.parse_args()
 
     # Get the limesurvey params
-    lime_user = args.config.get('limesurvey_user')
-    lime_pass = args.config.get('limesurvey_pass')
-    lime_base = args.config.get('limesurvey_url_base')
+    lime_dict = args.config.get('limesurvey', {})
+    lime_user = lime_dict.get('user')
+    lime_pass = lime_dict.get('pass')
+    lime_base = lime_dict.get('url_base')
+
+    loglevel = logging.WARNING - 10*args.verbose
+    logging.basicConfig(level=loglevel)
 
     with LimeSurveyConnection(lime_base, lime_user, lime_pass) as c:
+        LOG.info('Opening up connection to limesurvey')
         responses = c.export_responses(args.surveyid)
 
         # Download the zipfile only if it doesn't already exist.
         if args.zip and os.path.exists(args.zip) and not args.force:
+            LOG.info('Loading files from previously downloaded zip file: {}'.format(args.zip))
             zip = zipfile.ZipFile(args.zip)
         else:
+            LOG.info('Downloading zip files for responses')
             zip = c.get_download_for_response_list(args.surveyid, list(responses['id']), bytes=True)
-            with open(args.zip, 'wb') as zip_f:
-                zip_f.write(zip)
+            if args.zip:
+                with open(args.zip, 'wb') as zip_f:
+                    zip_f.write(zip)
             zip = zipfile.ZipFile(BytesIO(zip))
 
 
@@ -169,6 +189,4 @@ if __name__ == '__main__':
             else:
                 responses.to_pickle(args.sheet)
 
-        parse_sheet(responses, args.output, zip)
-        # parse_sheet(args.sheet, args.output, args.files)
-    # print(file_ids)
+        parse_sheet(responses, args.output, zip, args.daily)

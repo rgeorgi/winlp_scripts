@@ -1,0 +1,15 @@
+Dear {name},
+
+    We have reviewed your request for travel assistance, and are currently able to offer you up to ${amount} USD, which consists of:
+
+    * $62 USD/night of stay, up to 7 nights
+    * Airfare to either Florence (FLR), Bologna (BLQ), Milan, or Rome. Train connections can be made in <3 hours and for < 50 EUR.
+
+Though we raised more funds this year, registration and flights are more expensive than last year, so we are making an effort to keep costs down. Please under-spend if you can, and let us know your exact airfare costs as soon as you can. This will allow us to extend aid to as many authors as possible.
+
+We cannot cover registrations at the moment, but please do register by Jun 28 to get reduced-rate early-bird. Contact us immediately if this is a deal-breaking hardship.
+
+ACL Registration link: http://www.acl2019.org/EN/registrations.xhtml
+
+- Thank you,
+WiNLP Chairs
