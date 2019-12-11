@@ -8,3 +8,6 @@ pandas
 google_auth_oauthlib
 google_auth_httplib2
 html2text
+xlwt
+pytest-testconfig
+pytest

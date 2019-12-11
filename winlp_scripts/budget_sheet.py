@@ -15,6 +15,7 @@ from google.oauth2.credentials import Credentials
 from winlp_scripts.utils import col_letter
 
 class AuthenticationException(Exception): pass
+class SheetParseException(Exception): pass
 
 def get_sheet_by_index(service, spreadsheet_id, index) -> dict:
     """
@@ -63,12 +64,14 @@ def auth_google(cred_path: str) -> Credentials:
 def grab_sheet(spreadsheet_id: str,
                page_index: int,
                cred_path: Credentials=None,
-               num_rows=48,
+               num_rows=1000,
                api_key: str=None,
-               last_col='ac') -> Tuple[List, List]:
+               last_col='zz') -> Tuple[List, List]:
     """
     Grab the budget spreadsheet to process.
     """
+    if not spreadsheet_id:
+        raise SheetParseException("Spreadsheet_id must not be None")
     if not (cred_path or api_key):
         raise AuthenticationException('Either api_key or creds must be specified')
 
@@ -84,5 +87,5 @@ def grab_sheet(spreadsheet_id: str,
         range="'{}'!A1:{}{}".format(sheet_title, last_col, num_rows)
     ).execute().get('values')
     headers = rows[0]
-    return headers, rows[1:]
+    return headers, rows[1:num_rows]
 

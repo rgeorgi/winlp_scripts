@@ -2,7 +2,6 @@ import math
 import re
 from string import ascii_lowercase
 from xlrd.sheet import Cell, Sheet
-import yaml
 from typing import Tuple, List, Generator, Union
 
 
@@ -61,5 +60,6 @@ def load_yml(yml_path):
     """
     Load a yaml file from the specified path.
     """
+    import yaml
     with open(yml_path) as yml_f:
         return yaml.load(yml_f, Loader=yaml.FullLoader)
