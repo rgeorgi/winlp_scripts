@@ -1,6 +1,6 @@
-# -------------------------------------------
-# Unit Tests
-# -------------------------------------------
+"""
+Unit tests for working with the LimeSurvey software.
+"""
 import os
 import yaml
 

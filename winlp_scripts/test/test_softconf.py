@@ -8,9 +8,11 @@ Unit tests for the softconf interface.
 # info.
 # -------------------------------------------
 from pytest_testconfig import config
-from winlp_scripts.softconf import SoftconfConnection
+import pytest
+from winlp_scripts.softconf import SoftconfConnection, FailedLogin
+from pandas import DataFrame
 
-def test_init():
+def test_login_succeeds():
     user = config['softconf']['user']
     pw = config['softconf']['pass']
     url_base = config['softconf']['url_base']
@@ -18,7 +20,14 @@ def test_init():
     assert scc is not None
     return scc
 
-scc = test_init()
+scc = test_login_succeeds()
 
-def test_submission_page():
-    print(scc.submission_information().keys())
+def test_submissions():
+    submission_info = scc.submission_information()
+    print(submission_info.keys())
+    # assert isinstance(submission_info, DataFrame)
+
+def test_failed_login():
+    url_base = config['softconf']['url_base']
+    with pytest.raises(FailedLogin):
+        scc = SoftconfConnection('none', 'none', url_base)

@@ -42,7 +42,11 @@ def get_col(row, key, mapping):
         return None
     return row[index]
 
-def auth_google(cred_path: str) -> Credentials:
+def auth_google(cred_path: str,
+                client_path: str) -> Credentials:
+    """
+
+    """
     creds = None
     if os.path.exists(cred_path):
         with open(cred_path, 'rb') as cred_f:
@@ -52,7 +56,7 @@ def auth_google(cred_path: str) -> Credentials:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                '/Users/rgeorgi/Documents/code/winlp_scripts/data/client_id.json',
+                client_path,
                 ['https://www.googleapis.com/auth/spreadsheets.readonly'])
             creds = flow.run_local_server(port=0)
             with open(cred_path, 'wb') as token:

@@ -9,11 +9,12 @@ import re
 import requests
 import xlrd
 from bs4 import BeautifulSoup, Tag
-from typing import Union
+from typing import Union, List
 import pandas
 
 
 
+class ConfigException(Exception): pass
 class FailedLogin(Exception): pass
 class HTTP404(Exception): pass
 
@@ -22,6 +23,20 @@ class SoftconfConnection(object):
     def __init__(self, username: str, password: str, base_url: str):
         self.base_url = base_url
         self.session = self._login(username, password)
+
+    @classmethod
+    def from_conf(cls, conf: dict):
+        sc = conf.get('softconf', {})
+        user = sc.get('user')
+        pw = sc.get('pass')
+        url_base = sc.get('url_base')
+
+        if (sc is None) or (user is None) or (pw is None):
+            raise ConfigException('"user", "pass", and "url_base" must be specified for the "softconf" section \
+            in the config file.')
+
+
+        return cls(user, pw, url_base)
 
     def _login(self, username: str, password: str) -> requests.Session:
         """
@@ -110,62 +125,43 @@ class SoftconfConnection(object):
             book = xlrd.open_workbook(file_contents=xlsx_data)
             return pandas.read_excel(book)
 
+    def check_plagiarism(self):
+        return self._get_spreadsheet(type="dude", keys=[])
 
-    def submission_information(self, bytes = False) -> Union[pandas.DataFrame, bytes]:
+    def _get_spreadsheet(self, type: str,
+                         keys: List[str],
+                         bytes: bool = False) -> Union[pandas.DataFrame, bytes]:
+        data = {"Type": type,
+                "SubmitButton": "Spreadsheet",
+                "spreadsheet_type": "xlsx"
+                }
+
+        # The softconf interface allows up to 41 fields
+        # in the spreadsheet.
+        for i in range(42):
+            val = keys[i] if i < len(keys) else ''
+            data['Field{{{}}}'.format(i)] = val
+
         response = self.session.post(
             url=self.base_url+'manager/scmd.cgi',
-            params={'scmd':'makeSpreadsheet'},
-            data={
-                "Type": "submissions",
-                "Field{0}": "paperID",
-                "Field{1}": "",
-                "Field{2}": "",
-                "Field{3}": "",
-                "Field{4}": "title",
-                "Field{5}": "",
-                "Field{6}": "",
-                "Field{7}": "",
-                "Field{8}": "authors",
-                "Field{9}": "",
-                "Field{10}": "",
-                "Field{11}": "",
-                "Field{12}": "acceptStatus",
-                "Field{13}": "",
-                "Field{14}": "",
-                "Field{15}": "",
-                "Field{16}": "dateReceived",
-                "Field{17}": "",
-                "Field{18}": "",
-                "Field{19}": "",
-                "Field{20}": "contactUsername",
-                "Field{21}": "",
-                "Field{22}": "",
-                "Field{23}": "",
-                "Field{24}": "contactFirstname",
-                "Field{25}": "",
-                "Field{26}": "",
-                "Field{27}": "",
-                "Field{28}": "contactLastname",
-                "Field{29}": "",
-                "Field{30}": "",
-                "Field{31}": "",
-                "Field{32}": "",
-                "Field{33}": "",
-                "Field{34}": "",
-                "Field{35}": "",
-                "Field{36}": "",
-                "Field{37}": "",
-                "Field{38}": "",
-                "Field{39}": "",
-                "Field{40}": "",
-                "Field{41}": "",
-                "SubmitButton": "Spreadsheet",
-                "spreadsheet_type": "xlsx"})
+            params={'scmd': 'makeSpreadsheet'},
+            data=data)
+
+        # Either return as raw bytes (if we want to download the spreadsheet)
+        # or as a pandas dataframe.
         if bytes:
             return response.content
         else:
             book = xlrd.open_workbook(file_contents=response.content)
             return pandas.read_excel(book)
+
+    def submission_information(self, bytes = False) -> Union[pandas.DataFrame, bytes]:
+        """
+        Retrieve the spreadsheet about submission information.
+        """
+        return self._get_spreadsheet(
+            'submissions', [PAPER_ID, MC_USERNAME, MC_EMAIL, ALL_EMAILS], bytes=bytes
+        )
 
     def retrieve_pdf(self, submission_id: int) -> bytes:
         """
@@ -237,3 +233,35 @@ def convert_submission_page_to_text(sub_page_html: str):
     # print(items)
 
 
+
+# -------------------------------------------
+# Define the keys used for generating the spreadsheets
+# -------------------------------------------
+ALL_EMAILS = 'allAuthorEmails'
+ALL_NAMES = 'authors'
+MC_LAST = 'contactLastname'
+MC_FIRST = 'contactFirstname'
+MC_EMAIL = 'email'
+MC_USERNAME = 'contactUsername'
+MC_TITLE = 'contactTitle'
+MC_AFFILLIATION = 'contactAffiliation'
+MC_DEPT = 'contactAffiliationDpt'
+MC_JOB = 'contactJobFunction'
+MC_PHONE = 'contactPhone'
+MC_MOBILE = 'contactMobile'
+MC_ADDRESS = 'contactAddress'
+MC_CITY = 'contactCity'
+MC_STATE = 'contactState'
+MC_ZIP = 'contactZip'
+MC_COUNTRY = 'contactCountry'
+MC_BIO = 'contactBiography'
+MC_GENDER = 'field_GenderInfo'
+MC_RACE = 'field_RaceInfo'
+MC_REGION = 'field_RegionInfo'
+MC_CITIZENSHIP = 'field_CitizenshipInfo'
+MC_RACE_SPEC = 'field_race_specification'
+PAPER_ID = 'paperID'
+PAPER_TITLE = 'title'
+PAPER_ACCEPT = 'acceptStatus'
+PAPER_ABSTRACT = 'abstract'
+PAPER_RECEIVED = 'dateReceived'
