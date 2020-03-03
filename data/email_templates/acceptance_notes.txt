@@ -1,0 +1,9 @@
+Dear {mc_first} {mc_last},
+
+You should have received the notification of the program committee's review decision already, but we wanted to send the following additional note from the program chairs:
+
+    {note}
+
+If you have any additional questions, please feel free to get in touch.
+
+- WiNLP 2020 Co-Chairs

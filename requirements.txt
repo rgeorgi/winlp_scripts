@@ -11,3 +11,6 @@ html2text
 xlwt
 pytest-testconfig
 pytest
+bs4
+lxml
+requests

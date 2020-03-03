@@ -56,7 +56,7 @@ def cols_to_bitstring(row, start_col: str, stop_col: str):
     print(start_col, start_index, stop_col, stop_index)
     return [int(cell.value == 'Yes') for cell in row[start_index:stop_index+1]]
 
-def load_yml(yml_path):
+def load_yml(yml_path) -> dict:
     """
     Load a yaml file from the specified path.
     """

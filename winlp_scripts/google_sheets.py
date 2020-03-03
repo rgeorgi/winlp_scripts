@@ -6,6 +6,7 @@ so consolidate some of the functionality here
 import os
 import pickle
 from typing import Tuple, List
+import pandas
 
 import googleapiclient.discovery
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -42,6 +43,54 @@ def get_col(row, key, mapping):
         return None
     return row[index]
 
+class GoogleSheetInterface():
+    """
+    Interface to handle authenticating to the Google Sheet API
+    """
+    def __init__(self, cred_path, client_path):
+        self.creds = auth_google(cred_path, client_path)
+
+    @property
+    def service(self):
+        return googleapiclient.discovery.build('sheets', 'v4', credentials=self.creds)
+
+
+    def get_sheet(self, sheet_id: str,
+                  cell_range=None, page_index=0,
+                  has_headers=True):
+        """
+
+        """
+        # By default, grab what should by all accounts
+        # be the entire sheet
+        if cell_range is None:
+            cell_range = 'A1:ZZZ999'
+
+        sheet_title = get_sheet_by_index(self.service, sheet_id, page_index).get('title')
+        rows = self.service.spreadsheets().values().get(
+            spreadsheetId=sheet_id,
+            range=f"'{sheet_title}'!{cell_range}"
+        ).execute().get('values')
+
+        if has_headers:
+            # Make sure that there are is a value for every cell
+            # that has a header
+            data = []
+            for row in rows[1:]:
+                new_row = []
+                for col_idx in range(len(rows[0])):
+                    if col_idx >= len(row):
+                        new_row.append(None)
+                    else:
+                        new_row.append(row[col_idx])
+                data.append(new_row)
+            return pandas.DataFrame(data=data, columns=rows[0])
+        else:
+            return pandas.DataFrame(data=rows)
+
+
+
+
 def auth_google(cred_path: str,
                 client_path: str) -> Credentials:
     """
@@ -62,8 +111,6 @@ def auth_google(cred_path: str,
             with open(cred_path, 'wb') as token:
                 pickle.dump(creds, token)
     return creds
-
-
 
 def grab_sheet(spreadsheet_id: str,
                page_index: int,

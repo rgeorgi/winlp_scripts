@@ -3,9 +3,7 @@ This module provides an interface for programmatically
 interfacing with softconf
 """
 
-import pickle
 import re
-
 import requests
 import xlrd
 from bs4 import BeautifulSoup, Tag
@@ -130,11 +128,14 @@ class SoftconfConnection(object):
 
     def _get_spreadsheet(self, type: str,
                          keys: List[str],
-                         bytes: bool = False) -> Union[pandas.DataFrame, bytes]:
+                         bytes: bool = False,
+                         other_data: dict = None) -> Union[pandas.DataFrame, bytes]:
         data = {"Type": type,
                 "SubmitButton": "Spreadsheet",
                 "spreadsheet_type": "xlsx"
                 }
+        if other_data is not None:
+            data.update(other_data)
 
         # The softconf interface allows up to 41 fields
         # in the spreadsheet.
@@ -153,14 +154,33 @@ class SoftconfConnection(object):
             return response.content
         else:
             book = xlrd.open_workbook(file_contents=response.content)
-            return pandas.read_excel(book)
+            df = pandas.read_excel(book) # type: pandas.DataFrame
+            # Rename the columns to be the same as the provided keys
+            df.rename(columns={old_key:new_key for old_key, new_key in zip(df.keys(), keys)}, inplace=True)
+            return df
 
-    def submission_information(self, bytes = False) -> Union[pandas.DataFrame, bytes]:
+    def submission_information(self, bytes = False, keys: List[str] = None) -> Union[pandas.DataFrame, bytes]:
         """
         Retrieve the spreadsheet about submission information.
+
+        If the "keys" var is specified, use that instead of the default keys.
         """
+        keys = keys if keys is not None else [PAPER_ID, PASSCODE, MC_USERNAME, MC_EMAIL, PAPER_TITLE, ALL_EMAILS]
         return self._get_spreadsheet(
-            'submissions', [PAPER_ID, MC_USERNAME, MC_EMAIL, ALL_EMAILS], bytes=bytes
+            'submissions', keys, bytes=bytes
+        )
+
+    def reviews(self, bytes=False, keys: List[str] = None) -> Union[pandas.DataFrame, bytes]:
+        """
+        Retrieve reviews
+        """
+        if keys is None:
+            keys = [PAPER_ID, SCORE_CLARITY, SCORE_ORIGINALITY, SCORE_CORRECTNESS, SCORE_COMPARISON, SCORE_THOROUGHNESS, SCORE_IMPACT, REVIEWER_CONFIDENCE, SCORE_RECOMMENDATION, REVIEW_DETAILED_COMMENTS, REVIEW_AUTHOR_QUESTIONS]
+        return self._get_spreadsheet(
+            'customreviews',
+            keys=keys,
+            bytes=bytes,
+            other_data={'spreadsheetReviewsView': 'byReview'}
         )
 
     def retrieve_pdf(self, submission_id: int) -> bytes:
@@ -265,3 +285,24 @@ PAPER_TITLE = 'title'
 PAPER_ACCEPT = 'acceptStatus'
 PAPER_ABSTRACT = 'abstract'
 PAPER_RECEIVED = 'dateReceived'
+PASSCODE = 'passcode'
+
+# --------------------------------------------
+# Review Keys
+# --------------------------------------------
+REVIEWER = 'reviewer'
+REVIEWER_FIRST = 'reviewerFirstName'
+REVIEWER_LAST = 'reviewerLastName'
+REVIEWER_EMAIL = 'reviewerEmail'
+SCORE_CLARITY = 'ScoreField{Clarity}'
+SCORE_ORIGINALITY = 'ScoreField{Originality___Innovativeness}'
+SCORE_CORRECTNESS = 'ScoreField{Soundness___Correctness}'
+SCORE_COMPARISON = 'ScoreField{Meaningful_Comparison}'
+SCORE_THOROUGHNESS = 'ScoreField{Thoroughness}'
+SCORE_IMPACT = 'ScoreField{Impact_of_Ideas_or_Results}'
+REVIEWER_CONFIDENCE = 'ScoreField{Reviewer_Confidence}'
+SCORE_RECOMMENDATION='ScoreField{Recommendation}'
+REVIEW_DETAILED_COMMENTS='field_raw_Detailed_Comments'
+REVIEW_AUTHOR_QUESTIONS='field_raw_Questions_for_Authors'
+
+

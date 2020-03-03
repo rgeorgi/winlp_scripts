@@ -1,3 +1,25 @@
-gmail_user: <username@gmail.com>
-gmail_pass: <app-specific-password>
-cc_email: <cc-additional-chairs@address>
+# -- 1) Google:
+#        Enter a username and an application-specific password for a user
+#        with access to the shared Google Docs here.
+google:
+  user: <enter_your_gmail_username_here>
+  pass: <enter_an_application-specific_password>
+  # API information for the Google Scripts. This is still being developed
+  # api_key:
+  # client_file: ./data/client_id.json
+  # token_file: ./data/token.pkl
+
+cc_user: winlp-chairs@googlegroups.com
+softconf:
+  user: <enter_your_softconf_login_here>
+  pass: <enter_your_softconf_password>
+  url_base: htpps://<landing_page_for_softconf_for_this_conference>
+limesurvey:
+  user: <limesurvey_admin_user>
+  pass: <limeusrvey_password>
+  url_base: <base_url_for_limesurvey>
+# Not currently using these settings.
+#templates:
+#  invitation:
+#  grant_email:
+#  reimburse_email:
