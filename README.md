@@ -30,6 +30,12 @@ The script assumes that you have a worksheet grant letter (.docx) with the follo
 - `{paper_title}`
   - Title of the attendee's paper, if they are presnting one.
 
+
+### `Sending Author Notes`
+```
+export PYTHONPATH=.; python3 ./scripts/send_author_notes.py -c config.yml -s '<spreadsheet_id>' -t 'data/email_templates/acceptance_notes.txt' -e True
+```
+
 #### Config
 
 The script also expects a yaml configuration file (default `config.yml`) that specifies a gmail account and password (this may need to be app-specific if you use Oauth or 2-factor auth), as well as a cc address, to include your other co-chairs.
