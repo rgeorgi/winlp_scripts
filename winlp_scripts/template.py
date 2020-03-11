@@ -4,7 +4,10 @@ import re
 from docx import Document as LoadDoc
 from docx.document import Document
 from docx.section import Section
+from docx.table import _Rows, _Row, _Cell
 from docx.text.paragraph import Paragraph
+from docx.oxml.text.paragraph import CT_P
+from docx.oxml.table import CT_Tbl
 from docx.text.run import Run
 
 KEY_PATTERN = '{([^}]+)}'
@@ -32,18 +35,8 @@ def replace_keys(text: str, keys: dict, key_pattern=KEY_PATTERN) -> str:
     new_text += text[cur_stop:]
     return new_text
 
-
-
-def docx_template(docx_path: str, keys: dict) -> Document:
-    """
-    Given a docx with {key}s, return a document with those
-    keys filled with the variables from `keys`
-    """
-    d = LoadDoc(docx_path) # type: Document
-
-    # Iterate over all the paragraphs in the document.
-    for para in d.sou: # type: Section
-        para._document_part
+def replace_paragraph_text(element, keys: dict):
+    for para in element.paragraphs:
 
         new_runs = []
 
@@ -52,8 +45,7 @@ def docx_template(docx_path: str, keys: dict) -> Document:
 
 
         # print(para.paragraph_format.space_after)
-        for run in para._p.r_lst: # type: Element
-
+        for run in para.runs: # type: Element
             # Look to see whether a key occurs in the run text.
             key_in_run_m = '{' in run.text or '}' in run.text
 
@@ -82,11 +74,24 @@ def docx_template(docx_path: str, keys: dict) -> Document:
                     cur_run_text = ''
 
 
+def docx_template(docx_path: str, keys: dict) -> Document:
+    """
+    Given a docx with {key}s, return a document with those
+    keys filled with the variables from `keys`
+    """
+    doc = LoadDoc(docx_path) # type: Document
 
-        # para.clear()
-        # for run in new_runs: # type: Run
-        #     para.add_run(run.text, run.style)
+    body = doc.element.body
+    parts = body.iterchildren()
+
+    # Iterate over all the paragraphs in the document.
+    replace_paragraph_text(doc, keys)
+
+    # Iterate over all the tables
+    for table in doc.tables:
+        for row in table.rows: # type: _Row
+            for cell in row.cells: # type: _Cell
+                replace_paragraph_text(cell, keys)
 
 
-
-    return d
+    return doc
